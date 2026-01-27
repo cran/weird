@@ -6,14 +6,14 @@
 \alias{weird-package}
 \title{weird: Functions and Data Sets for "That's Weird: Anomaly Detection Using R" by Rob J Hyndman}
 \description{
-All functions and data sets required for the examples in the book Hyndman (2024) "That's Weird: Anomaly Detection Using R" \url{https://OTexts.com/weird/}. All packages needed to run the examples are also loaded.
+All functions and data sets required for the examples in the book Hyndman (2026) "That's Weird: Anomaly Detection Using R" \url{https://OTexts.com/weird/}. All packages needed to run the examples are also loaded.
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://pkg.robjhyndman.com/weird-package/}
-  \item \url{https://github.com/robjhyndman/weird-package}
-  \item Report bugs at \url{https://github.com/robjhyndman/weird-package/issues}
+  \item \url{https://pkg.robjhyndman.com/weird/}
+  \item \url{https://github.com/robjhyndman/weird}
+  \item Report bugs at \url{https://github.com/robjhyndman/weird/issues}
 }
 
 }

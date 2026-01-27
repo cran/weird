@@ -4,14 +4,7 @@
 \alias{gg_bagplot}
 \title{Bagplot}
 \usage{
-gg_bagplot(
-  data,
-  var1,
-  var2,
-  col = c(hdr_palette(color = "#00659e", prob = c(0.5, 0.99)), "#000000"),
-  scatterplot = FALSE,
-  ...
-)
+gg_bagplot(data, var1, var2, color = "#00659e", show_points = FALSE, ...)
 }
 \arguments{
 \item{data}{A data frame or matrix containing the data.}
@@ -20,9 +13,10 @@ gg_bagplot(
 
 \item{var2}{The name of the second variable to plot (a bare expression).}
 
-\item{col}{The colors to use in the order: median, bag, loop and outliers.}
+\item{color}{The base color to use for the median. Other colors are generated
+as a mixture of \code{color} with white.}
 
-\item{scatterplot}{A logical argument indicating if a regular bagplot is required
+\item{show_points}{A logical argument indicating if a regular bagplot is required
 (\code{FALSE}), or if a scatterplot in the same colors is required (\code{TRUE}).}
 
 \item{...}{Other arguments are passed to the \code{\link[aplpack]{compute.bagplot}} function.}
@@ -38,11 +32,14 @@ showing the remaining observations other than outliers, and any outliers.
 }
 \examples{
 gg_bagplot(n01, v1, v2)
-gg_bagplot(n01, v1, v2, scatterplot = TRUE)
+gg_bagplot(n01, v1, v2, show_points = TRUE)
 }
 \references{
 Rousseeuw, P. J., Ruts, I., & Tukey, J. W. (1999).
 The bagplot: A bivariate boxplot. \emph{The American Statistician}, \bold{52}(4), 382–387.
+
+Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 5.6,
+\url{https://OTexts.com/weird/}.
 }
 \seealso{
 \code{\link[aplpack]{bagplot}}

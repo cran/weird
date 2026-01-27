@@ -18,7 +18,7 @@ A data frame with 110,203 rows and 8 columns:
 }
 }
 \source{
-\url{https://kaggle.com}
+\url{https://www.kaggle.com/}
 }
 \usage{
 fetch_wine_reviews()
@@ -34,8 +34,12 @@ during the week of 15 June 2017. The data are downloaded and returned.
 \dontrun{
 wine_reviews <- fetch_wine_reviews()
 wine_reviews |>
- ggplot(aes(x = points, y = price)) +
- geom_jitter(height = 0, width = 0.2, alpha = 0.1) +
- scale_y_log10()
+  ggplot(aes(x = points, y = price)) +
+  geom_jitter(height = 0, width = 0.2, alpha = 0.1) +
+  scale_y_log10()
 }
+}
+\references{
+Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+\url{https://OTexts.com/weird/}.
 }

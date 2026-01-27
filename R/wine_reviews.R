@@ -15,24 +15,26 @@
 #'   \item{year}{Year of wine extracted from `title`}
 #' }
 #' @return Data frame
+#' @references Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+#' \url{https://OTexts.com/weird/}.
 #' @examples
 #' \dontrun{
 #' wine_reviews <- fetch_wine_reviews()
 #' wine_reviews |>
-#'  ggplot(aes(x = points, y = price)) +
-#'  geom_jitter(height = 0, width = 0.2, alpha = 0.1) +
-#'  scale_y_log10()
+#'   ggplot(aes(x = points, y = price)) +
+#'   geom_jitter(height = 0, width = 0.2, alpha = 0.1) +
+#'   scale_y_log10()
 #' }
-#' @source \url{https://kaggle.com}
+#' @source \url{https://www.kaggle.com/}
 #' @aliases wine_reviews
 #' @export
 fetch_wine_reviews <- function() {
   # Download to temporary file to avoid repeated downloads in the same session
   dest_folder <- tempdir()
-  dest_file <- paste0(dest_folder,"/wine_reviews.rds")
-  if(!file.exists(dest_file)) {
+  dest_file <- paste0(dest_folder, "/wine_reviews.rds")
+  if (!file.exists(dest_file)) {
     utils::download.file(
-      url = "https://github.com/robjhyndman/weird-package/raw/main/data-raw/wine_reviews.rds",
+      url = "https://github.com/robjhyndman/weird/raw/main/data-raw/wine_reviews.rds",
       destfile = dest_file
     )
   }

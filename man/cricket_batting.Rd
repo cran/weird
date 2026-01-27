@@ -5,7 +5,7 @@
 \alias{cricket_batting}
 \title{Cricket batting data for international test players}
 \format{
-A data frame with 3754 rows and 15 variables:
+A data frame with 3968 rows and 15 variables:
 \describe{
 \item{Player}{Player name in form of "initials surname"}
 \item{Country}{Country played for}
@@ -25,7 +25,7 @@ A data frame with 3754 rows and 15 variables:
 }
 }
 \source{
-\url{https://www.espncricinfo.com}
+\url{https://www.espncricinfo.com/}
 }
 \usage{
 cricket_batting
@@ -35,12 +35,16 @@ Data frame
 }
 \description{
 A dataset containing career batting statistics for all international test
-players (men and women) up to 6 October 2021.
+players (men and women) up to 6 October 2025.
 }
 \examples{
 cricket_batting |>
   filter(Innings > 20) |>
   select(Player, Country, Matches, Runs, Average, Hundreds, Fifties, Ducks) |>
   arrange(desc(Average))
+}
+\references{
+Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+\url{https://OTexts.com/weird/}.
 }
 \keyword{datasets}

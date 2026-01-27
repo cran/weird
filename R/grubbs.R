@@ -17,8 +17,11 @@
 #' Dixon's test only considers the maximum (and possibly the minimum) as potential outliers.
 #' @references Grubbs, F. E. (1950). Sample criteria for testing outlying observations.
 #' *Annals of Mathematical Statistics*, 21(1), 27–58.
-#' Dixon, W. J. (1950). Analysis of extreme values.
+#' @references  Dixon, W. J. (1950). Analysis of extreme values.
 #' *Annals of Mathematical Statistics*, 21(4), 488–506.
+#' @references  Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 4.4,
+#' \url{https://OTexts.com/weird/}.
+
 #' @return A logical vector
 #' @author Rob J Hyndman
 #' @param y numerical vector of observations
@@ -72,19 +75,26 @@ dixon_anomalies <- function(y, alpha = 0.05, two_sided = TRUE) {
   sorty <- sort(y)
   n <- length(y)
   if (two_sided) {
-    Q <- max(sorty[2] - sorty[1], sorty[n] - sorty[n-1]) / (sorty[n] - sorty[1])
+    Q <- max(sorty[2] - sorty[1], sorty[n] - sorty[n - 1]) /
+      (sorty[n] - sorty[1])
   } else {
-    Q <- (sorty[n] - sorty[n-1]) / (sorty[n] - sorty[1])
+    Q <- (sorty[n] - sorty[n - 1]) / (sorty[n] - sorty[1])
     alpha <- 2 * alpha
   }
 
   # Find critical value using linear model fitted to simulated critical values
   # Subset data to nearest alpha and n values
-  logit <- function(u) { log(u/(1-u)) }
-  loglog <- function(u) { log(log(u)) }
+  logit <- function(u) {
+    log(u / (1 - u))
+  }
+  loglog <- function(u) {
+    log(log(u))
+  }
   # Find four nearest alpha values
   alpha_grid <- sort(unique(dixon_cv$alpha))
-  nearest_alpha <- (alpha_grid[order(abs(logit(alpha_grid) - logit(alpha)))])[1:4]
+  nearest_alpha <- (alpha_grid[order(abs(logit(alpha_grid) - logit(alpha)))])[
+    1:4
+  ]
   # Fit model using only alpha values?
   alpha_only_model <- (n %in% 3:50)
   # Find nearest n values
@@ -95,7 +105,9 @@ dixon_anomalies <- function(y, alpha = 0.05, two_sided = TRUE) {
     n_grid <- sort(unique(dixon_cv$n))
     nearest_n <- (n_grid[order(abs(loglog(n_grid) - loglog(n)))])[1:4]
   }
-  cv_subset <- dixon_cv[dixon_cv$alpha %in% nearest_alpha & dixon_cv$n %in% nearest_n, ]
+  cv_subset <- dixon_cv[
+    dixon_cv$alpha %in% nearest_alpha & dixon_cv$n %in% nearest_n,
+  ]
   cv_subset$loglogn <- loglog(cv_subset$n)
   cv_subset$logitalpha <- logit(cv_subset$alpha)
   if (alpha_only_model) {
@@ -103,11 +115,14 @@ dixon_anomalies <- function(y, alpha = 0.05, two_sided = TRUE) {
     dixonfit <- stats::lm(log(cv) ~ poly(logitalpha, 3), data = cv_subset)
   } else {
     # Quadratic bivariate model to 16 points. 6 df
-    dixonfit <- stats::lm(log(cv) ~ poly(loglogn, 2) + poly(logitalpha, 2) + I(logitalpha * loglogn),
+    dixonfit <- stats::lm(
+      log(cv) ~
+        poly(loglogn, 2) + poly(logitalpha, 2) + I(logitalpha * loglogn),
       data = cv_subset
     )
   }
-  threshold <- exp(stats::predict(dixonfit,
+  threshold <- exp(stats::predict(
+    dixonfit,
     newdata = data.frame(logitalpha = logit(alpha), loglogn = loglog(n))
   ))
   # Return logical vector showing where outliers are
@@ -116,10 +131,11 @@ dixon_anomalies <- function(y, alpha = 0.05, two_sided = TRUE) {
     if (two_sided) {
       output[miny] <- (sorty[2] - sorty[1]) / (sorty[n] - sorty[1]) > threshold
     }
-    output[maxy] <- (sorty[n] - sorty[n - 1]) / (sorty[n] - sorty[1]) > threshold
+    output[maxy] <- (sorty[n] - sorty[n - 1]) / (sorty[n] - sorty[1]) >
+      threshold
   }
   return(output)
 }
 
 #' @importFrom stats lm predict qt
-#' @importFrom tibble tibble
+#' @importFrom dplyr tibble

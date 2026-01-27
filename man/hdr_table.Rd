@@ -4,61 +4,32 @@
 \alias{hdr_table}
 \title{Table of Highest Density Regions}
 \usage{
-hdr_table(
-  y = NULL,
-  density = NULL,
-  prob = c(0.5, 0.99),
-  h = kde_bandwidth(y, method = "double"),
-  H = kde_bandwidth(y, method = "double"),
-  ...
-)
+hdr_table(object, prob)
 }
 \arguments{
-\item{y}{Numerical vector or matrix of data}
+\item{object}{Distributional object such as that returned by \code{dist_kde()}}
 
-\item{density}{Probability density function, either estimated by \code{ks::kde()} or
-a data frame or matrix with numerical columns that can be passed to \code{as_kde()}.}
-
-\item{prob}{Probability of the HDR}
-
-\item{h}{Bandwidth for univariate kernel density estimate. Default is \code{\link{kde_bandwidth}}.}
-
-\item{H}{Bandwidth for multivariate kernel density estimate. Default is \code{\link{kde_bandwidth}}.}
-
-\item{...}{If \code{y} is supplied, other arguments are passed to \code{\link[ks]{kde}}.
-Otherwise, additional arguments are passed to \code{\link{as_kde}}.}
+\item{prob}{Vector of probabilities giving the HDR coverage (between 0 and 1)}
 }
 \value{
 A tibble
 }
 \description{
-Compute the highest density regions (HDR) for a kernel density estimate. The HDRs
-are returned as a tibble with one row per interval and columns:
+Compute a table of highest density regions (HDR) for a distributional object.
+The HDRs are returned as a tibble with one row per interval and columns:
 \code{prob} (giving the probability coverage),
 \code{density} (the value of the density at the boundary of the HDR),
 For one dimensional density functions, the tibble also has columns
-\code{lower} (the lower ends of the intervals),
-\code{upper} (the upper ends of the interval),
-\code{mode} (the point at which the density is maximized within each interval).
+\code{lower} (the lower ends of the intervals), and
+\code{upper} (the upper ends of the intervals).
 }
 \examples{
 # Univariate HDRs
-y <- c(rnorm(100), rnorm(100, 3, 1))
-hdr_table(y = y)
-hdr_table(density = ks::kde(y))
-x <- seq(-4, 4, by = 0.01)
-hdr_table(density = data.frame(y = x, density = dnorm(x)), prob = 0.95)
+c(dist_normal(), dist_kde(c(rnorm(100), rnorm(100, 3, 1)))) |>
+  hdr_table(c(0.5, 0.95))
+dist_kde(oldfaithful$duration) |> hdr_table(0.95)
 # Bivariate HDRs
-y <- cbind(rnorm(100), rnorm(100))
-hdr_table(y = y)
-grid <- seq(-4, 4, by=0.1)
-density <- expand.grid(grid, grid) |>
-  mutate(density = dnorm(Var1) * dnorm(Var2))
-hdr_table(density = density)
-}
-\references{
-Hyndman, R J. (1996) Computing and Graphing Highest Density Regions,
-\emph{The American Statistician}, \bold{50}(2), 120–126.
+dist_kde(oldfaithful[, c("duration", "waiting")]) |> hdr_table(0.90)
 }
 \author{
 Rob J Hyndman
