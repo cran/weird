@@ -6,6 +6,7 @@
 #'
 #' @param x Numerical vector of ordinates, or a list of such vectors.
 #' @param density Numerical vector of density values, or a list of such vectors.
+#' @return A distributional object of class `dist_density`.
 #' @examples
 #' dist_density(seq(-4, 4, by = 0.01), dnorm(seq(-4, 4, by = 0.01)))
 #'
@@ -16,16 +17,22 @@ dist_density <- function(x, density) {
     x <- list(x)
     density <- list(density)
   }
-  if (length(x) != length(density)) {
-    stop("x and density must be lists of the same length")
-  }
+  stopifnot(length(x) == length(density))
+  stopifnot(all(unlist(lapply(x, is.numeric))))
+  stopifnot(all(unlist(lapply(density, is.numeric))))
   n <- lengths(x)
-  if (any(n != lengths(density))) {
-    stop("x and density must have the same length")
-  }
+  stopifnot(all(n == lengths(density)))
+  stopifnot(all(unlist(lapply(density, function(f) all(f >= 0)))))
+
   # Ensure density integrates to 1
   density <- mapply(
-    function(x, f) f / integral(x, f),
+    function(x, f) {
+      fint <- integral(x, f)
+      if (fint <= 0) {
+        stop("Density must have positive integral")
+      }
+      f / fint
+    },
     x,
     density,
     SIMPLIFY = FALSE
@@ -34,8 +41,18 @@ dist_density <- function(x, density) {
   idx <- lapply(x, order)
   x <- mapply(function(u, i) u[i], x, idx, SIMPLIFY = FALSE)
   density <- mapply(function(f, idx) f[idx], density, idx, SIMPLIFY = FALSE)
+  # Precompute CDF grid once and store it alongside x and f
+  cdfs <- mapply(cumintegral, x, density, SIMPLIFY = FALSE)
+  cdf_x <- lapply(cdfs, `[[`, "x")
+  cdf_y <- lapply(cdfs, `[[`, "y")
   # Construct result
-  output <- distributional::new_dist(x = x, f = density, class = "dist_density")
+  output <- distributional::new_dist(
+    x = x,
+    f = density,
+    cdf_x = cdf_x,
+    cdf_y = cdf_y,
+    class = "dist_density"
+  )
   # Replace degenerate distributions
   degenerate <- (n == 1L)
   if (any(degenerate)) {
@@ -63,18 +80,22 @@ log_density.dist_density <- function(x, at, ..., na.rm = TRUE) {
 
 #' @exportS3Method distributional::cdf
 cdf.dist_density <- function(x, q, ..., na.rm = TRUE) {
-  # Compute CDF at density ordinates
-  F <- cumintegral(x$x, x$f)
-  stats::approx(F$x, F$y, xout = q, yleft = 0, yright = 1, ..., na.rm = na.rm)$y
+  stats::approx(
+    x$cdf_x,
+    x$cdf_y,
+    xout = q,
+    yleft = 0,
+    yright = 1,
+    ...,
+    na.rm = na.rm
+  )$y
 }
 
 #' @export
 quantile.dist_density <- function(x, p, ..., na.rm = TRUE) {
-  # Compute CDF at density ordinates
-  F <- cumintegral(x$x, x$f)
   stats::approx(
-    F$y,
-    F$x,
+    x$cdf_y,
+    x$cdf_x,
     xout = p,
     yleft = min(x$x),
     yright = max(x$x),

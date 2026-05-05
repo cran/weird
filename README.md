@@ -6,8 +6,11 @@
 
 <!-- badges: start -->
 
-[![R build
-status](https://github.com/robjhyndman/weird/workflows/R-CMD-check/badge.svg)](https://github.com/robjhyndman/weird/actions)
+[![R-CMD-check](https://github.com/robjhyndman/weird/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/robjhyndman/weird/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/weird)](https://CRAN.R-project.org/package=weird)
+[![Downloads](https://cranlogs.r-pkg.org/badges/weird)](https://cran.r-project.org/package=weird)
+[![Licence](https://img.shields.io/badge/licence-GPL--3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0.en.html)
 <!-- badges: end -->
 
 ## Overview
@@ -43,15 +46,15 @@ pak::pak("robjhyndman/weird")
 - [distributional](https://cran.r-project.org/package=distributional),
   for handling probability distributions.
 
-You also get a condensed summary of conflicts with other packages you
-have loaded:
+When you load the weird package, you get a condensed summary of
+conflicts with other packages you have previously loaded:
 
 ``` r
 library(weird)
-#> ── Attaching packages ─────────────────────────────────────────────────────────────── weird 2.0.0 ──
-#> ✔ dplyr          1.1.4     ✔ distributional 0.6.0
-#> ✔ ggplot2        4.0.1
-#> ── Conflicts ──────────────────────────────────────────────────────────────────── weird_conflicts ──
+#> ── Attaching packages ─────────────────────────────────────────── weird 2.0.0.9000 ──
+#> ✔ dplyr          1.2.1     ✔ distributional 0.7.0
+#> ✔ ggplot2        4.0.3
+#> ── Conflicts ───────────────────────────────────────────────────── weird_conflicts ──
 #> ✖ dplyr::filter() masks stats::filter()
 #> ✖ dplyr::lag()    masks stats::lag()
 ```
@@ -265,19 +268,19 @@ oldfaithful |>
   ) |>
   arrange(surprisal_prob)
 #> # A tibble: 10 × 9
-#>    time                recorded_duration       duration waiting surprisal surprisal_prob strayscore
-#>    <dttm>              <chr>                      <dbl>   <dbl>     <dbl>          <dbl>      <dbl>
-#>  1 2022-12-03 16:20:00 ~4m                          240    3060      16.9        0.00131     0.265 
-#>  2 2018-04-25 19:08:00 1s                             1    5700      16.9        0.00136     0.150 
-#>  3 2023-07-04 12:03:00 ~1 minute 55ish seconds       60    4920      16.9        0.00138     0.122 
-#>  4 2022-12-07 17:19:00 ~4 30s                        30    5220      16.9        0.00140     0.273 
-#>  5 2020-06-01 21:04:00 2 minutes                    120    6060      16.9        0.00143     0.132 
-#>  6 2020-09-04 01:38:00 >1m 50s                      110    6240      16.9        0.00148     0.167 
-#>  7 2018-09-22 16:37:00 ~4m13s                       253    7140      14.6        0.0355      0.0194
-#>  8 2023-05-26 00:53:00 4m45s                        285    7140      14.6        0.0369      0.0761
-#>  9 2017-09-22 18:51:00 ~281s                        281    7140      14.5        0.0419      0.0683
-#> 10 2023-08-09 20:52:00 4m39s                        279    7140      14.5        0.0428      0.0651
-#> # ℹ 2 more variables: lofscore <dbl>, gloshscore <dbl>
+#>    time                recorded_duration    duration waiting surprisal surprisal_prob
+#>    <dttm>              <chr>                   <dbl>   <dbl>     <dbl>          <dbl>
+#>  1 2022-12-07 17:19:00 ~4 30s                     30    5220      16.4       0.000935
+#>  2 2023-07-04 12:03:00 ~1 minute 55ish sec…       60    4920      16.4       0.000967
+#>  3 2022-12-03 16:20:00 ~4m                       240    3060      16.4       0.000999
+#>  4 2018-04-25 19:08:00 1s                          1    5700      16.4       0.00110 
+#>  5 2020-09-04 01:38:00 >1m 50s                   110    6240      16.4       0.00112 
+#>  6 2020-06-01 21:04:00 2 minutes                 120    6060      16.3       0.00145 
+#>  7 2023-05-26 00:53:00 4m45s                     285    7140      14.9       0.0288  
+#>  8 2017-09-22 18:51:00 ~281s                     281    7140      14.8       0.0341  
+#>  9 2023-08-09 20:52:00 4m39s                     279    7140      14.8       0.0345  
+#> 10 2018-09-22 16:37:00 ~4m13s                    253    7140      14.4       0.0528  
+#> # ℹ 3 more variables: strayscore <dbl>, lofscore <dbl>, gloshscore <dbl>
 ```
 
 ## Robust multivariate scaling
@@ -297,7 +300,8 @@ renamed as `z1`, `z2`, etc. Non-rotated scaling is possible by setting
 
 ``` r
 mvscale(oldfaithful)
-#> Warning in mvscale(oldfaithful): Ignoring non-numeric columns: time, recorded_duration
+#> Warning in mvscale(oldfaithful): Ignoring non-numeric columns: time,
+#> recorded_duration
 #> # A tibble: 2,097 × 4
 #>    time                recorded_duration      z1     z2
 #>    <dttm>              <chr>               <dbl>  <dbl>
@@ -313,7 +317,8 @@ mvscale(oldfaithful)
 #> 10 2017-02-05 19:00:00 4m 2s             -0.121   0.554
 #> # ℹ 2,087 more rows
 mvscale(oldfaithful, cov = NULL)
-#> Warning in mvscale(oldfaithful, cov = NULL): Ignoring non-numeric columns: time, recorded_duration
+#> Warning in mvscale(oldfaithful, cov = NULL): Ignoring non-numeric columns: time,
+#> recorded_duration
 #> # A tibble: 2,097 × 4
 #>    time                recorded_duration duration waiting
 #>    <dttm>              <chr>                <dbl>   <dbl>

@@ -14,14 +14,15 @@ n01
 Data frame
 }
 \description{
-A synthetic data set containing 1000 observations on 10 variables generated
+A synthetic data set containing 1000 observations on
+10 variables generated
 from independent standard normal distributions.
 }
 \examples{
 n01
 }
 \references{
-Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 1.4,
 \url{https://OTexts.com/weird/}.
 }
 \keyword{datasets}

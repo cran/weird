@@ -5,7 +5,8 @@
 \alias{oldfaithful}
 \title{Old faithful eruption data}
 \format{
-A data frame with 2097 rows and 4 columns:
+A data frame with 2097 rows and
+4 columns:
 \describe{
 \item{time}{Time eruption started}
 \item{recorded_duration}{Duration of eruption as recorded}
@@ -35,7 +36,7 @@ oldfaithful |>
   geom_point()
 }
 \references{
-Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 1.4,
 \url{https://OTexts.com/weird/}.
 }
 \keyword{datasets}

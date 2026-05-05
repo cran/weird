@@ -1,7 +1,11 @@
 #' Robust bandwidth estimation for kernel density estimation
 #'
-#' Bandwidth matrices are estimated using either a robust version of the normal
-#' reference rule, or using the approach of Hyndman, Kandanaarachchi & Turner (2026).
+#' Bandwidth matrices are estimated in several ways including
+#' a normal reference rule,
+#' a robust version of the normal reference rule (default),
+#' a plugin estimator,
+#' or using the approach of Hyndman, Kandanaarachchi & Turner (2026).
+#' Details of each method are given in Hyndman (2026).
 #'
 #' @param data A numeric matrix or data frame.
 #' @param method A character string giving the method to use. Possibilities are:
@@ -9,12 +13,11 @@
 #' `"robust"` (a robust version of the normal reference rule, the default),
 #' `"plugin"` (a plugin estimator), and
 #' `"lookout"` (the bandwidth matrix estimate of Hyndman, Kandanaarachchi & Turner, 2026).
-#' @param ... Additional arguments are ignored unless `method = "lookout"`, when
-#' they are passed to [lookout::find_tda_bw()].
-#' @references Rob J Hyndman, Sevvandi Kandanaarachchi & Katharine Turner (2026)
+#' @param ... Additional arguments are ignored.
+#' @references Hyndman, R J, Kandanaarachchi, S & Turner, K (2026)
 #' "When lookout sees crackle: Anomaly detection via kernel density estimation",
 #' unpublished. \url{https://robjhyndman.com/publications/lookout2.html}
-#' @references Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
 #' \url{https://OTexts.com/weird/}.
 #' @return A matrix of bandwidths (or a scalar in the case of univariate data).
 #' @author Rob J Hyndman
@@ -33,6 +36,7 @@ kde_bandwidth <- function(
   method <- match.arg(method)
   d <- NCOL(data)
   n <- NROW(data)
+  stopifnot(n > 2)
   if (method == "plugin") {
     if (d == 1L) {
       return(stats::bw.SJ(data))
@@ -41,7 +45,8 @@ kde_bandwidth <- function(
     }
   }
   if (method == "lookout") {
-    cc <- lookout::find_tda_bw(mvscale(data), ...)
+    death_radi <- mlpack::emst(mvscale(as.matrix(data)))$output[, 3]
+    cc <- unname(quantile(death_radi, probs = 0.98, type = 8L))
   } else {
     cc <- (4 / (n * (d + 2)))^(2 / (d + 4))
   }

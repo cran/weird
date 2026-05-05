@@ -5,7 +5,8 @@
 \alias{cricket_batting}
 \title{Cricket batting data for international test players}
 \format{
-A data frame with 3968 rows and 15 variables:
+A data frame with 3968 rows and
+15 variables:
 \describe{
 \item{Player}{Player name in form of "initials surname"}
 \item{Country}{Country played for}
@@ -44,7 +45,7 @@ cricket_batting |>
   arrange(desc(Average))
 }
 \references{
-Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 1.4,
 \url{https://OTexts.com/weird/}.
 }
 \keyword{datasets}

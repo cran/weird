@@ -31,3 +31,58 @@ test_that("dist_kde1", {
     tolerance = 0.005
   )
 })
+
+test_that("dist_kde log_density", {
+  set.seed(123)
+  dist <- dist_kde(rnorm(100))
+  at <- seq(-4, 4, by = 1)
+  ld <- distributional:::log_density(dist, at)
+  # log_density equals log(density)
+  expect_equal(ld[[1]], log(density(dist, at)[[1]]))
+  # Returns -Inf where density is zero
+  expect_equal(distributional:::log_density(dist, -100)[[1]], -Inf)
+  expect_true(is.numeric(distributional::skewness(dist)[[1]]))
+  expect_true(is.numeric(distributional::kurtosis(dist)[[1]]))
+  # Excess kurtosis of a large normal sample should be near 0
+  set.seed(42)
+  dist_large <- dist_kde(rnorm(10000))
+  expect_equal(distributional::kurtosis(dist_large)[[1]], 0, tolerance = 0.1)
+  fmt <- format(dist)
+  expect_true(grepl("^kde\\[1d", fmt))
+  expect_true(grepl("h=", fmt))
+})
+
+test_that("dist_kde respects explicit h bandwidth", {
+  set.seed(1)
+  x <- rnorm(100)
+  d_narrow <- dist_kde(x, h = 0.1)
+  d_wide   <- dist_kde(x, h = 2.0)
+  # Wider bandwidth inflates the variance of the KDE
+  expect_gt(
+    distributional::variance(d_wide)[[1]],
+    distributional::variance(d_narrow)[[1]]
+  )
+})
+
+test_that("dist_kde method parameter accepts all four variants", {
+  set.seed(1)
+  x <- rnorm(200)
+  expect_no_error(dist_kde(x, method = "normal"))
+  expect_no_error(dist_kde(x, method = "robust"))
+  expect_no_error(dist_kde(x, method = "plugin"))
+  expect_no_error(dist_kde(x, method = "lookout"))
+})
+
+test_that("dist_kde hdr", {
+  # Custom hdr method used when n >= 200
+  set.seed(123)
+  dist_large <- dist_kde(rnorm(1000))
+  h <- distributional::hdr(dist_large, size = 50)
+  expect_s3_class(h, "hdr")
+  # Fallback to default when n < 200
+  dist_small <- dist_kde(rnorm(199))
+  h_small <- distributional::hdr(dist_small, size = 50)
+  expect_s3_class(h_small, "hdr")
+  # The two should be relatively similar
+  expect_equal(h, h_small, tolerance = 0.25)
+})

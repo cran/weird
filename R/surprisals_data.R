@@ -7,7 +7,7 @@
 #' estimate is computed from the data `object`.
 #' @param approximation Character string specifying the method to use in
 #' computing the surprisal probabilities. See Details below. For a multivariate
-#' data set, it needs to be set to either "gpd" or "rank".
+#' data set, it needs to be set to either "gpd" or "empirical".
 #' @param loo Should leave-one-out surprisals be computed?
 #' @seealso \code{\link{dist_kde}}
 #' @examples
@@ -49,7 +49,7 @@ surprisals.numeric <- function(
   if (NCOL(object) == 1L) {
     object <- c(object)
   }
-  if (length(distribution) > 1 & length(object) > 1) {
+  if (length(distribution) > 1 && length(object) > 1) {
     if (length(distribution) != length(object)) {
       stop("Length of distribution and object must be the same or equal to 1")
     }
@@ -103,15 +103,18 @@ surprisals.data.frame <- function(
 #' @export
 surprisals_prob.numeric <- function(
   object,
-  approximation = c("none", "gpd", "rank"),
+  approximation = c("none", "gpd", "empirical", "rank"),
   threshold_probability = 0.10,
   distribution = dist_kde(object, ...),
   loo = FALSE,
   ...
 ) {
   approximation <- match.arg(approximation)
+  if (approximation == "rank") {
+    approximation <- "empirical"
+  }
   s <- surprisals.numeric(object, distribution = distribution, loo = loo)
-  if (loo & all(stats::family(distribution) == "kde")) {
+  if (loo && all(stats::family(distribution) == "kde")) {
     y <- object
   } else {
     y <- NULL
@@ -129,7 +132,7 @@ surprisals_prob.numeric <- function(
 #' @export
 surprisals_prob.matrix <- function(
   object,
-  approximation = c("none", "gpd", "rank"),
+  approximation = c("none", "gpd", "empirical", "rank"),
   threshold_probability = 0.10,
   distribution = dist_kde(object, ...),
   loo = FALSE,
@@ -152,7 +155,7 @@ surprisals_prob.matrix <- function(
 #' @export
 surprisals_prob.data.frame <- function(
   object,
-  approximation = c("none", "gpd", "rank"),
+  approximation = c("none", "gpd", "empirical", "rank"),
   threshold_probability = 0.10,
   distribution = dist_kde(object, ...),
   loo = FALSE,

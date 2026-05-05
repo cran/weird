@@ -15,15 +15,18 @@ kde_bandwidth(data, method = c("robust", "normal", "plugin", "lookout"), ...)
 \code{"plugin"} (a plugin estimator), and
 \code{"lookout"} (the bandwidth matrix estimate of Hyndman, Kandanaarachchi & Turner, 2026).}
 
-\item{...}{Additional arguments are ignored unless \code{method = "lookout"}, when
-they are passed to \code{\link[lookout:find_tda_bw]{lookout::find_tda_bw()}}.}
+\item{...}{Additional arguments are ignored.}
 }
 \value{
 A matrix of bandwidths (or a scalar in the case of univariate data).
 }
 \description{
-Bandwidth matrices are estimated using either a robust version of the normal
-reference rule, or using the approach of Hyndman, Kandanaarachchi & Turner (2026).
+Bandwidth matrices are estimated in several ways including
+a normal reference rule,
+a robust version of the normal reference rule (default),
+a plugin estimator,
+or using the approach of Hyndman, Kandanaarachchi & Turner (2026).
+Details of each method are given in Hyndman (2026).
 }
 \examples{
 # Univariate bandwidth calculation
@@ -32,11 +35,11 @@ kde_bandwidth(oldfaithful$duration)
 kde_bandwidth(oldfaithful[, c("duration", "waiting")])
 }
 \references{
-Rob J Hyndman, Sevvandi Kandanaarachchi & Katharine Turner (2026)
+Hyndman, R J, Kandanaarachchi, S & Turner, K (2026)
 "When lookout sees crackle: Anomaly detection via kernel density estimation",
 unpublished. \url{https://robjhyndman.com/publications/lookout2.html}
 
-Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
+Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
 \url{https://OTexts.com/weird/}.
 }
 \author{

@@ -4,7 +4,7 @@
 #' This function produces a ggplot of a density from a distributional object.
 #' For univariate densities, it produces a line plot of the density function, with
 #' an optional ribbon showing some highest density regions (HDRs) and/or the observations.
-#' For bivariate densities, it produces ah HDR contour plot of the density function, with
+#' For bivariate densities, it produces an HDR contour plot of the density function, with
 #' the observations optionally shown as points.
 #' The mode can also be drawn as a point.
 #' The combination of `hdr = "fill"`, `show_points = TRUE`,
@@ -35,7 +35,7 @@
 #' @author Rob J Hyndman
 #' @examples
 #' # Univariate densities
-#' kde <- dist_kde(c(rnorm(500), rnorm(500, 4, .5)))
+#' kde <- dist_kde(c(rnorm(500), rnorm(500, 4, 0.5)))
 #' gg_density(kde,
 #'   hdr = "fill", prob = c(0.5, 0.95), color = "#c14b14",
 #'   show_mode = TRUE, show_points = TRUE, jitter = TRUE
@@ -69,7 +69,7 @@ gg_density <- function(
   jitter = FALSE,
   ngrid = 501
 ) {
-  if (min(prob) <= 0 | max(prob) >= 1) {
+  if (min(prob) <= 0 || max(prob) >= 1) {
     stop("prob must be between 0 and 1")
   }
   prob <- sort(prob)
@@ -207,7 +207,7 @@ gg_density1 <- function(
   if (hdr == "fill") {
     prob <- sort(unique(prob), decreasing = TRUE)
     hdrdf <- purrr::map_dfr(prob, function(u) {
-      hdri <- distributional::hdr(object, size = u * 100)
+      hdri <- distributional::hdr(object, size = u * 100, n = 4096)
       tibble(
         level = u * 100,
         Distribution = dist_names,
@@ -216,7 +216,7 @@ gg_density1 <- function(
       ) |>
         tidyr::unnest(c(lower, upper))
     })
-    hdrdf$id <- seq(NROW(hdrdf))
+    hdrdf$id <- seq_len(NROW(hdrdf))
     hdrdf$ymin <- -maxden *
       as.numeric(factor(hdrdf$Distribution, levels = dist_names)) /
       20

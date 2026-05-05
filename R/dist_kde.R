@@ -16,7 +16,8 @@
 #' @param method The method of bandwidth estimation to use. See [kde_bandwidth()]
 #' for details. Ignored if `h` or `H` are specified.
 #' @param ... Other arguments are passed to \code{\link[ks]{kde}}.
-#' @references Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
+#' @return A distributional object of class `dist_kde`.
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
 #' \url{https://OTexts.com/weird/}.
 #' @examples
 #' dist_kde(c(rnorm(200), rnorm(100, 5)))
@@ -28,7 +29,7 @@ dist_kde <- function(
   y,
   h = NULL,
   H = NULL,
-  method = c("normal", "robust", "plugin", "lookout"),
+  method = c("robust", "normal", "plugin", "lookout"),
   ...
 ) {
   method <- match.arg(method)
@@ -46,17 +47,20 @@ dist_kde <- function(
   density <- lapply(
     y,
     function(u) {
+      stopifnot(NROW(u) > 0)
       if (NCOL(u) == 1L) {
         if (is.null(h)) {
           if (!is.null(H)) {
             if (!identical(dim(H), c(1L, 1L))) {
               stop("H must be a 1x1 matrix for univariate data")
             }
+            stopifnot(H > 0)
             h <- sqrt(H)
           } else {
             h <- kde_bandwidth(u, method = method)
           }
         }
+        stopifnot(h > 0)
         ks::kde(x = u, h = as.vector(h), ...)
       } else {
         if (is.null(H)) {
@@ -66,6 +70,10 @@ dist_kde <- function(
             stop(
               "H must be a square matrix with dimension equal to the number of columns of y"
             )
+          }
+          # Check H is positive definite
+          if (!all(eigen(H)$values > 0)) {
+            stop("H must be positive definite")
           }
         }
         ks::kde(x = u, H = H, ...)
@@ -179,8 +187,16 @@ cdf.dist_kde <- function(x, q, ..., na.rm = TRUE) {
     stop("Multivariate kde cdf not implemented")
   }
   # Integrate density
-  F <- cumintegral(x$kde$eval.points, x$kde$estimate)
-  stats::approx(F$x, F$y, xout = q, yleft = 0, yright = 1, ..., na.rm = na.rm)$y
+  CDF <- cumintegral(x$kde$eval.points, x$kde$estimate)
+  stats::approx(
+    CDF$x,
+    CDF$y,
+    xout = q,
+    yleft = 0,
+    yright = 1,
+    ...,
+    na.rm = na.rm
+  )$y
 }
 
 #' @export
@@ -189,13 +205,13 @@ quantile.dist_kde <- function(x, p, ..., na.rm = TRUE) {
     stop("Multivariate kde quantiles not implemented")
   }
   # Compute CDF at density ordinates
-  F <- cumintegral(x$kde$eval.points, x$kde$estimate)
+  CDF <- cumintegral(x$kde$eval.points, x$kde$estimate)
   stats::approx(
-    F$y,
-    F$x,
+    CDF$y,
+    CDF$x,
     xout = p,
-    yleft = min(F$x),
-    yright = max(F$x),
+    yleft = min(CDF$x),
+    yright = max(CDF$x),
     ties = mean,
     ...,
     na.rm = na.rm
@@ -231,8 +247,7 @@ median.dist_kde <- function(x, na.rm = FALSE, ...) {
 covariance.dist_kde <- function(x, ...) {
   n <- NROW(x$kde$x)
   if (NCOL(x$kde$x) > 1) {
-    stop("Multivariate kde covariance is not yet implemented")
-    stats::cov(x$kde$x, ...) # Needs adjustment
+    (n - 1) / n * stats::cov(x$kde$x) + x$kde$H
   } else {
     (n - 1) / n * stats::var(x$kde$x, ...) + x$kde$h^2
   }
@@ -256,5 +271,59 @@ kurtosis.dist_kde <- function(x, ..., na.rm = FALSE) {
     h <- x$kde$h
     v <- distributional::variance(x)
     (mean((x$kde$x - mean(x$kde$x))^4) + 6 * h^2 * v - 3 * h^4) / v^2 - 3
+  }
+}
+
+# hdr.dist_kde is a modification of distributional:::hdr.dist_default,
+# but uses the KDE at the data points to find falpha,
+# rather than the KDE at the quantiles of the distribution.
+# This avoids the problem of having surprisal anomalies that are inconsistent with the HDR
+# Number of observations required tentatively set to 200.
+
+#' @exportS3Method distributional::hdr
+hdr.dist_kde <- function(object, size, n = 4096) {
+  if (NROW(object$kde$x) < 200) {
+    # Just use the default. There is not enough data to get a good estimate of falpha
+    NextMethod()
+  } else {
+    dist_y <- density(object, at = object$kde$x)
+    falpha <- quantile(dist_y, probs = 1 - size / 100, type = 8)
+    x <- quantile(object, seq(0.5 / n, 1 - 0.5 / n, length.out = n))
+    y <- density(object, at = x)
+    hdr <- crossing_alpha(falpha, x, y)
+    lower_hdr <- seq_along(hdr) %% 2 == 1
+    distributional::new_hdr(
+      lower = list(hdr[lower_hdr]),
+      upper = list(hdr[!lower_hdr]),
+      size = size
+    )
+  }
+}
+
+crossing_alpha <- function(alpha, x, y) {
+  it <- seq_len(length(y) - 1)
+  dd <- y - alpha
+  dd <- dd[it + 1] * dd[it]
+  index <- it[dd <= 0]
+  out <- unique(vapply(
+    index,
+    function(.x) {
+      stats::approx(
+        y[.x + c(0, 1)],
+        x[.x + c(0, 1)],
+        xout = alpha
+      )$y
+    },
+    numeric(1L)
+  ))
+  c(x[1][y[1] > alpha], out, x[length(x)][y[length(y)] > alpha])
+}
+
+#' @exportS3Method distributional::parameters
+parameters.dist_kde <- function(x, ...) {
+  if (NCOL(x$kde$x) > 1) {
+    list(H = x$kde$H)
+  } else {
+    list(h = x$kde$h)
   }
 }

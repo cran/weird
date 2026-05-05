@@ -15,7 +15,7 @@
 #'   \item{year}{Year of wine extracted from `title`}
 #' }
 #' @return Data frame
-#' @references Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 1.4,
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 1.4,
 #' \url{https://OTexts.com/weird/}.
 #' @examples
 #' \dontrun{
@@ -35,7 +35,8 @@ fetch_wine_reviews <- function() {
   if (!file.exists(dest_file)) {
     utils::download.file(
       url = "https://github.com/robjhyndman/weird/raw/main/data-raw/wine_reviews.rds",
-      destfile = dest_file
+      destfile = dest_file,
+      mode = "wb"
     )
   }
   readRDS(dest_file)

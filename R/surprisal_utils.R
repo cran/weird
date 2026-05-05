@@ -5,13 +5,13 @@ surprisals_from_den <- function(object, den, distribution, loo) {
   if (NCOL(object) == 1L) {
     object <- c(object)
   }
-  if (length(distribution) > 1 & length(object) > 1) {
+  if (length(distribution) > 1 && length(object) > 1) {
     if (length(distribution) != length(object)) {
       stop("Length of distribution and object must be the same or equal to 1")
     }
   }
   scores <- -den
-  if (loo & all(stats::family(distribution) == "kde")) {
+  if (loo && all(stats::family(distribution) == "kde")) {
     n <- NROW(object)
     d <- NCOL(object)
     if (d == 1L) {
@@ -54,20 +54,18 @@ surprisal_prob_from_s <- function(
   }
   if (approximation == "none") {
     # Univariate, not normal, not symmetric
-    if (length(unique(distribution)) == 1L) {
+    dd <- unique(distribution)
+    if (length(dd) == 1L) {
       distribution <- unique(distribution)
     } else {
-      # Need to compute probabilities one by one
-      dd <- length(distribution)
-      if (dd != n) {
-        stop("Length of distribution must be 1 or equal to length of s")
-      }
+      # Need to compute probabilities one distribution at a time
       p <- numeric(n)
-      for (i in seq(n)) {
-        p[i] <- surprisal_prob_from_s(
-          s[i],
-          distribution[i],
-          y = y[i],
+      for (i in seq_along(dd)) {
+        j <- which(distribution == dd[i])
+        p[j] <- surprisal_prob_from_s(
+          s[j],
+          dd[i],
+          y = y[j],
           approximation = approximation,
           threshold_probability = threshold_probability
         )
@@ -78,14 +76,14 @@ surprisal_prob_from_s <- function(
 
   if (approximation == "gpd") {
     p <- surprisal_gpd_prob(s, threshold_probability)
-  } else if (approximation == "rank") {
-    p <- 1 - rank(s) / n
+  } else if (approximation == "empirical") {
+    p <- rank(-s, ties.method = "max", na.last = "keep") / sum(!is.na(s))
   } else if (approximation == "normal") {
     p <- surprisal_normal_prob(s, distribution)
-  } else if (approximation == "symmetric" & !is.null(y)) {
+  } else if (approximation == "symmetric" && !is.null(y)) {
     centre <- stats::median(distribution)
     p <- 2 *
-      (1 - distributional::cdf(distribution, q = centre + abs(y - centre)))
+      (1 - distributional::cdf(distribution, q = centre + abs(y - centre))[[1]])
   } else {
     # Slower computation, but more general (although approximate)
     dist_x <- stats::quantile(
@@ -95,7 +93,7 @@ surprisal_prob_from_s <- function(
     dist_x <- unique(unlist(dist_x))
     dist_y <- -unlist(density(distribution, dist_x, log = TRUE))
     prob <- (rank(dist_y) - 1) / length(dist_y)
-    if (all(is.na(dist_y)) | all(is.na(prob))) {
+    if (all(is.na(dist_y)) || all(is.na(prob))) {
       return(rep(NA_real_, n))
     }
     p <- 1 - approx(dist_y, prob, xout = s, rule = 2, ties = mean)$y

@@ -8,7 +8,7 @@ dist_kde(
   y,
   h = NULL,
   H = NULL,
-  method = c("normal", "robust", "plugin", "lookout"),
+  method = c("robust", "normal", "plugin", "lookout"),
   ...
 )
 }
@@ -28,6 +28,9 @@ for details. Ignored if \code{h} or \code{H} are specified.}
 
 \item{...}{Other arguments are passed to \code{\link[ks]{kde}}.}
 }
+\value{
+A distributional object of class \code{dist_kde}.
+}
 \description{
 Creates a distributional object using a kernel density estimate with a
 Gaussian kernel obtained from the \code{\link[ks]{kde}()} function. The bandwidth
@@ -41,6 +44,6 @@ dist_kde(cbind(rnorm(200), rnorm(200, 5)))
 
 }
 \references{
-Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
+Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
 \url{https://OTexts.com/weird/}.
 }

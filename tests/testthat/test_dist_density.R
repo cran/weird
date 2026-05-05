@@ -27,7 +27,7 @@ test_that("dist_density", {
   expect_equal(
     density(dist, at),
     list(
-      dnorm(at) * (at %in% c(1, 2)) / integral(1:2, dnorm(1:2)),
+      c(rep(0, 5), 1.635149, 0.364851, rep(0, 8)),
       dnorm(at),
       dexp(at)
     ),
@@ -36,7 +36,7 @@ test_that("dist_density", {
   # CDF
   expect_equal(
     distributional::cdf(dist, at),
-    list(as.integer(!(at < 2)), pnorm(at), pexp(at)),
+    list(as.integer(at >= 2), pnorm(at), pexp(at)),
     tolerance = 0.001
   )
   # Quantiles
@@ -88,4 +88,14 @@ test_that("dist_density", {
     unname(median(dist)),
     tolerance = 0.01
   )
+})
+
+# --- Input validation errors --------------------------------------------------
+
+test_that("dist_density errors on negative density values", {
+  expect_error(dist_density(1:5, c(0, 1, 2, -1, 0)))
+})
+
+test_that("dist_density errors when density integrates to zero", {
+  expect_error(dist_density(1:5, c(0, 0, 0, 0, 0)))
 })

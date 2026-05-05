@@ -5,8 +5,8 @@
 #' @details First, a moving median is calculated using windows of size
 #' `2 * bandwidth + 1`. Then the median absolute deviations from
 #' this moving median are calculated in the same moving windows.
-#' A point is declared an anomaly if its MAD is value is more than `k` standard
-#' deviations. The MAD is converted to a standard deviation using MAD * 1.482602,
+#' A point is declared an anomaly if its MAD value is more than `k` standard
+#' deviations. The MAD is converted to a standard deviation using MAD * 1.4826,
 #' which holds for normally distributed data.
 #' The first `bandwidth` and last `bandwidth` observations cannot
 #' be declared anomalies.
@@ -14,7 +14,7 @@
 #' @param bandwidth integer width of the window around each observation
 #' @param k numeric number of standard deviations to declare an outlier
 #' @return logical vector identifying which observations are anomalies.
-#' @references Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 9.2,
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 9.2,
 #' \url{https://OTexts.com/weird/}.
 #' @author Rob J Hyndman
 #' @examples
@@ -30,6 +30,9 @@
 #' @export
 
 hampel_anomalies <- function(y, bandwidth, k = 3) {
+  stopifnot(is.numeric(y))
+  stopifnot(is.numeric(bandwidth) && length(bandwidth) == 1 && bandwidth >= 1)
+  stopifnot(is.numeric(k) && length(k) == 1 && k > 0)
   if (abs(bandwidth - round(bandwidth)) > 1e-8) {
     stop("Bandwidth must be an integer")
   }

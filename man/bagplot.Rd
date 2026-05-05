@@ -25,7 +25,7 @@ as a mixture of \code{color} with white.}
 A ggplot object showing a bagplot or scatterplot of the data.
 }
 \description{
-Produces a bivariate bagplot. A bagplot is analagous to a
+Produces a bivariate bagplot. A bagplot is analogous to a
 univariate boxplot, except it is in two dimensions. Like a boxplot, it
 shows the median, a region containing 50\% of the observations, a region
 showing the remaining observations other than outliers, and any outliers.
@@ -35,10 +35,10 @@ gg_bagplot(n01, v1, v2)
 gg_bagplot(n01, v1, v2, show_points = TRUE)
 }
 \references{
-Rousseeuw, P. J., Ruts, I., & Tukey, J. W. (1999).
+Rousseeuw, P J, Ruts, I, & Tukey, J W (1999).
 The bagplot: A bivariate boxplot. \emph{The American Statistician}, \bold{52}(4), 382–387.
 
-Rob J Hyndman (2026) "That's weird: Anomaly detection using R", Section 5.6,
+Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 5.6,
 \url{https://OTexts.com/weird/}.
 }
 \seealso{
