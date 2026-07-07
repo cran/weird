@@ -17,7 +17,7 @@
 #' @references Hyndman, R J, Kandanaarachchi, S & Turner, K (2026)
 #' "When lookout sees crackle: Anomaly detection via kernel density estimation",
 #' unpublished. \url{https://robjhyndman.com/publications/lookout2.html}
-#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.9 and 3.9,
 #' \url{https://OTexts.com/weird/}.
 #' @return A matrix of bandwidths (or a scalar in the case of univariate data).
 #' @author Rob J Hyndman
@@ -37,6 +37,8 @@ kde_bandwidth <- function(
   d <- NCOL(data)
   n <- NROW(data)
   stopifnot(n > 2)
+  # Remove missing
+  data <- na.omit(data)
   if (method == "plugin") {
     if (d == 1L) {
       return(stats::bw.SJ(data))
@@ -45,7 +47,11 @@ kde_bandwidth <- function(
     }
   }
   if (method == "lookout") {
-    death_radi <- mlpack::emst(mvscale(as.matrix(data)))$output[, 3]
+    if (utils::packageVersion("mlpack") < "4.8.0") {
+      death_radi <- mlpack::emst(mvscale(as.matrix(data)))$output[, 3]
+    } else {
+      death_radi <- mlpack::emst(mvscale(as.matrix(data)))[, 3]
+    }
     cc <- unname(quantile(death_radi, probs = 0.98, type = 8L))
   } else {
     cc <- (4 / (n * (d + 2)))^(2 / (d + 4))

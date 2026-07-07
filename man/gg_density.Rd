@@ -15,7 +15,7 @@ gg_density(
     "#333333"),
   alpha = NULL,
   jitter = FALSE,
-  ngrid = 501
+  ngrid = NULL
 )
 }
 \arguments{
@@ -47,7 +47,9 @@ Defaults to min(1, 500/n), where n is the number of observations plotted.}
 \code{show_points} is TRUE, a small amount of vertical jittering is applied to the
 observations. Ignored for bivariate distributions.}
 
-\item{ngrid}{Number of grid points to use for the density function.}
+\item{ngrid}{Number of grid points in each dimension, passed to
+\code{\link[=density_df]{density_df()}}. Defaults to 501 for univariate distributions and 101 for
+bivariate distributions.}
 }
 \value{
 A ggplot object.

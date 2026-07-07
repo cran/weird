@@ -17,7 +17,7 @@
 #' for details. Ignored if `h` or `H` are specified.
 #' @param ... Other arguments are passed to \code{\link[ks]{kde}}.
 #' @return A distributional object of class `dist_kde`.
-#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7 and 3.9,
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.9 and 3.9,
 #' \url{https://OTexts.com/weird/}.
 #' @examples
 #' dist_kde(c(rnorm(200), rnorm(100, 5)))
@@ -47,6 +47,7 @@ dist_kde <- function(
   density <- lapply(
     y,
     function(u) {
+      u <- na.omit(u)
       stopifnot(NROW(u) > 0)
       if (NCOL(u) == 1L) {
         if (is.null(h)) {
@@ -171,7 +172,9 @@ density.dist_kde <- function(x, at, ..., na.rm = TRUE) {
       den <- as.vector(x$kde$estimate)[idx]
     }
   }
+  # Separate genuine missing from unable to be computed
   den[is.na(den)] <- 0
+  den[!stats::complete.cases(at)] <- NA
   return(den)
 }
 
@@ -225,7 +228,8 @@ generate.dist_kde <- function(x, times, ...) {
   if (d == 1) {
     x$kde$x[i] + stats::rnorm(times, sd = x$kde$h)
   } else {
-    x$kde$x[i, ] + mvtnorm::rmvnorm(times, sigma = x$kde$H)
+    U <- chol(x$kde$H)
+    x$kde$x[i, ] + matrix(stats::rnorm(d * times), nrow = times) %*% U
   }
 }
 

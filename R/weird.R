@@ -1,5 +1,5 @@
-# This package is based on the tidyverse package, hence the copyright
-# attribution to RStudio.
+# This package borrows some code from the tidyverse package, hence the copyright
+# attribution to Posit.
 
 #' @keywords internal
 "_PACKAGE"
@@ -10,3 +10,7 @@
 #' @importFrom ggplot2 geom_contour_filled geom_contour scale_fill_manual
 #' @export
 ggplot2::autoplot
+
+#' @importFrom broom augment
+#' @export
+broom::augment

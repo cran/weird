@@ -22,7 +22,6 @@
 #' Defaults to min(1, 500/n), where n is the number of observations plotted.
 #' @param jitter A logical value indicating if the points should be vertically jittered
 #' for the 1d box plots to reduce overplotting.
-#' @param ngrid Number of grid points to use for the density function.
 #' @param ... Other arguments passed to \code{\link{dist_kde}}.
 #' @return A ggplot object showing an HDR plot or scatterplot of the data.
 #' @author Rob J Hyndman
@@ -41,7 +40,6 @@
 #'   gg_hdrboxplot(duration, waiting, show_points = TRUE)
 #'
 #' @export
-
 gg_hdrboxplot <- function(
   data,
   var1,
@@ -52,15 +50,14 @@ gg_hdrboxplot <- function(
   show_anomalies = TRUE,
   alpha = NULL,
   jitter = TRUE,
-  ngrid = 501,
   ...
 ) {
   if (missing(var1)) {
     # Grab first variable
     data <- as.data.frame(data)
-    var1 <- rlang::sym(names(data)[1])
+    var1 <- as.symbol(names(data)[1])
     if (NCOL(data) > 1L) {
-      message("No variable selected. Using ", rlang::as_name(var1))
+      message("No variable selected. Using ", as.character(substitute(var1)))
     }
   }
   v2 <- dplyr::as_label(dplyr::enquo(var2))
@@ -73,32 +70,22 @@ gg_hdrboxplot <- function(
   }
   dist <- dist_kde(data[, seq(d)], ...)
   hdr <- dplyr::if_else(show_points, "points", "fill")
+  prob <- sort(prob)
 
   # Set up color palette
-  prob <- sort(prob)
-  hdr_colors <- list(hdr_palette(color = color, prob = c(prob, 1)))
-  names(hdr_colors) <- names_dist(dist)
+  hdr_colors <- make_hdr_colors(dist, color, prob)
 
-  # HDR thresholds
-  threshold <- hdr_table(dist, prob) |>
-    dplyr::transmute(
-      level = 100 * prob,
-      Distribution = distribution,
-      threshold = density
-    ) |>
-    dplyr::distinct()
-
-  # Data to plot
+  # Pre-compute density grid once for use by both hdr_table() and gg_density*.
+  df <- density_df(dist)
+  threshold <- make_threshold(dist, prob, df)
   show_x <- show_data(dist, prob, threshold, anomalies = show_anomalies)
   if (NROW(show_x) != NROW(data)) {
     stop("Something has gone wrong here!")
   }
 
-  # Call gg_density functions
   if (d == 2L) {
     gg_density2(
       dist,
-      df = make_density_df(dist, ngrid = ngrid),
       show_x = show_x,
       threshold = threshold,
       prob = prob,
@@ -107,30 +94,32 @@ gg_hdrboxplot <- function(
       show_points = TRUE,
       show_mode = TRUE,
       show_anomalies = show_anomalies,
-      alpha = alpha
+      alpha = alpha,
+      df = df
     ) +
       ggplot2::guides(fill = "none", color = "none")
   } else {
     gg_density1(
       dist,
-      df = make_density_df(dist, ngrid = ngrid),
       show_x = show_x,
       threshold = threshold,
       prob = prob,
       hdr = hdr,
       hdr_colors = hdr_colors,
-      show_density = FALSE,
       show_points = TRUE,
       show_mode = TRUE,
       show_anomalies = show_anomalies,
       alpha = alpha,
-      jitter = jitter
+      jitter = jitter,
+      df = df,
+      show_density = FALSE
     ) +
       ggplot2::guides(alpha = "none") +
       ggplot2::scale_y_continuous(breaks = NULL) +
       labs(y = "", x = names(data)[1])
   }
 }
+
 #' @title Table of Highest Density Regions
 #' @description
 #' Compute a table of highest density regions (HDR) for a distributional object.
@@ -145,7 +134,7 @@ gg_hdrboxplot <- function(
 #' @return A tibble
 #' @author Rob J Hyndman
 #' @references Hyndman, R J (1996) "Computing and Graphing Highest Density Regions", *The American Statistician*, 50(2), 120–126. \url{https://robjhyndman.com/publications/hdr/}
-#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.5, 3.4. \url{https://OTexts.com/weird/}.
+#' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 2.7, 3.4. \url{https://OTexts.com/weird/}.
 #' @seealso \code{\link{gg_hdrboxplot}}
 #' @examples
 #' # Univariate HDRs
@@ -157,77 +146,130 @@ gg_hdrboxplot <- function(
 #' @export
 hdr_table <- function(object, prob) {
   d <- dimension_dist(object)
-  prob <- sort(unique(prob), decreasing = TRUE)
-  dist_names <- names_dist(object)
-  if (d == 1L) {
-    output <- lapply(
-      prob,
-      function(p) {
-        hdri <- distributional::hdr(object, size = p * 100, n = 4096)
-        # Extract limits
-        hdri <- tibble(
-          prob = p,
-          distribution = dist_names,
-          lower = vctrs::field(hdri, "lower"),
-          upper = vctrs::field(hdri, "upper")
-        ) |>
-          tidyr::unnest(c(lower, upper))
-        mapply(
-          function(dist, hdr) {
-            hdr |>
-              dplyr::mutate(density = unlist(density(dist, at = lower)))
-          },
-          dist = as.list(object),
-          hdr = split(hdri, hdri$distribution)[dist_names],
-          SIMPLIFY = FALSE
-        ) |>
-          purrr::list_rbind()
-      }
-    )
-    # For multiple intervals, average the density values at the ends
-    # to avoid having different values
-    output <- lapply(output, function(df) {
-      df$density <- mean(df$density)
-      return(df)
-    })
+  if (d == 1) {
+    density_df <- NULL
+  } else if (d == 2) {
+    density_df <- make_density_df_2d(object)
   } else {
-    output <- lapply(
-      as.list(object),
-      function(u) {
-        # If u is a kde, we can use the data
-        # Otherwise we need to generate a random sample
-        if (stats::family(u) == "kde") {
-          x <- lapply(vctrs::vec_data(u), function(u) u$kde$x)[[1]]
-        } else {
-          x <- distributional::generate(u, times = 1e5)[[1]]
-        }
-        fi <- density(u, at = as.matrix(x))[[1]]
-        tibble(
-          distribution = names_dist(object),
-          prob = prob,
-          density = quantile(fi, prob = 1 - prob, type = 8)
-        )
-      }
-    )
+    stop("Not implemented for dimensions greater than 2")
   }
-  purrr::list_rbind(output) |>
-    dplyr::arrange(distribution, prob)
+  hdr_table_with_data(object, prob, density_df)
 }
 
-# Color palette designed for plotting Highest Density Regions
-#
-# A sequential color palette is returned, with the first color being `color`,
-# and the rest of the colors being a mix of `color` with increasing amounts of white.
-# If `prob` is provided, then the mixing proportions are determined by `prob` (and
-# n is ignored). Otherwise the mixing proportions are equally spaced between 0 and 1.
-#
-# @param n Number of colors in palette.
-# @param color First color of vector.
-# @param prob Vector of probabilities between 0 and 1.
-# @return A function that returns a vector of colors of length `length(prob) + 1`.
-# @examples
-# hdr_palette(prob = c(0.5, 0.99))
+hdr_table_with_data <- function(object, prob, density_df) {
+  d <- dimension_dist(object)
+  prob <- sort(unique(prob), decreasing = TRUE)
+  dist_names <- names_dist(object)
 
+  output <- if (d == 1L) {
+    hdr_table_1d(object, prob, dist_names)
+  } else {
+    hdr_table_2d(object, prob, dist_names, density_df = density_df)
+  }
+
+  output |> dplyr::arrange(distribution, prob)
+}
+
+# 1D path: use distributional::hdr() for canonical interval endpoints
+# (`lower`/`upper` columns). Threshold density is read at each lower endpoint
+# and then averaged within each distribution to smooth floating-point noise
+# across multiple intervals at the same level.
+hdr_table_1d <- function(object, prob, dist_names) {
+  output <- lapply(prob, function(p) {
+    hdri <- distributional::hdr(object, size = p * 100, n = 4096)
+    intervals <- tibble(
+      prob = p,
+      distribution = dist_names,
+      lower = vctrs::field(hdri, "lower"),
+      upper = vctrs::field(hdri, "upper")
+    ) |>
+      tidyr::unnest(c(lower, upper))
+
+    # Threshold density at each lower endpoint, computed per distribution.
+    intervals_split <- split(intervals, intervals$distribution)[dist_names]
+    per_dist <- mapply(
+      function(dist, df) {
+        df$density <- unlist(density(dist, at = df$lower))
+        df
+      },
+      dist = as.list(object),
+      df = intervals_split,
+      SIMPLIFY = FALSE
+    )
+    out <- do.call(rbind, per_dist)
+
+    # Average within each distribution (not across).
+    out |>
+      dplyr::group_by(distribution) |>
+      dplyr::mutate(density = mean(density)) |>
+      dplyr::ungroup()
+  })
+
+  do.call(rbind, output)
+}
+
+# 2D path. For a KDE with enough data, falpha is the (1 - p) quantile of the
+# density evaluated at the data points, matching the 1D path (hdr.dist_kde).
+# This keeps the HDR threshold consistent with surprisal-based anomalies, which
+# are also computed from the density at the data points. For non-KDE densities,
+# or a KDE with fewer than 200 points, there is no data (or not enough of it) to
+# estimate falpha this way, so we fall back to the mass-weighted
+# (1-p)-quantile of density values from the regular grid.
+hdr_table_2d <- function(object, prob, dist_names, density_df) {
+  if (length(object) > 1L) {
+    stop("Currently only supporting one bivariate density")
+  }
+  is_kde <- "kde" %in% stats::family(object)
+  kde_x <- if (is_kde) vctrs::vec_data(object)[[1]]$kde$x else NULL
+  if (!is_kde || NROW(kde_x) < 200) {
+    thresholds <- hdr_thresholds_from_grid(density_df$density, prob)
+  } else {
+    den_at_data <- density(object, at = kde_x)[[1]]
+    thresholds <- vapply(
+      prob,
+      function(p) {
+        stats::quantile(den_at_data, probs = 1 - p, type = 8, names = FALSE)
+      },
+      numeric(1L)
+    )
+  }
+  tibble(
+    distribution = dist_names[1],
+    prob = prob,
+    density = thresholds
+  )
+}
+
+# Mass-weighted (1-p)-quantile of density values on a regular grid.
+#
+# Mathematical sketch: for each grid cell i, the mass is approximately
+# f(x_i) * Delta_x * Delta_y. Sorting cells by f in decreasing order and
+# taking the cumulative mass gives the empirical CDF of the random variable
+# `f(X)` where X ~ distribution. The HDR threshold at coverage p is the
+# smallest density level at which the cumulative mass reaches p.
+#
+# Under a uniform-cell-area assumption (true to good approximation for the
+# grids produced by density_df_2d() -- the only non-uniformity is the
+# 0.0001*support boundary padding, which lies in very-low-density regions and
+# contributes negligibly at the probabilities we plot), the cell area cancels
+# from the normalisation and the implementation reduces to a cumsum on the
+# sorted density vector.
+hdr_thresholds_from_grid <- function(density, prob) {
+  ord <- order(-density)
+  d_sorted <- density[ord]
+  cum_p <- cumsum(d_sorted) / sum(d_sorted)
+
+  vapply(
+    prob,
+    function(p) {
+      idx <- which(cum_p >= p)[1]
+      if (is.na(idx)) min(d_sorted) else d_sorted[idx]
+    },
+    numeric(1L)
+  )
+}
+
+# Color palette for plotting Highest Density Regions.
 hdr_palette <- function(n, color = "#0072b2", prob = NULL) {
   if (missing(prob)) {
     prob <- seq(n - 1) / n
@@ -240,6 +282,24 @@ hdr_palette <- function(n, color = "#0072b2", prob = NULL) {
   )]
   idx <- approx(seq(0.01, 1, by = 0.01), seq(100), prob, rule = 2)$y
   c(color, pc_colors[idx])
+}
+
+make_hdr_colors <- function(object, colors, prob) {
+  hdr_colors <- lapply(colors, function(u) {
+    hdr_palette(color = u, prob = c(prob, 1))
+  })
+  names(hdr_colors) <- names_dist(object, unique = TRUE)
+  hdr_colors
+}
+
+make_threshold <- function(dist, prob, df) {
+  hdr_table_with_data(dist, prob, density_df = df) |>
+    dplyr::transmute(
+      level = 100 * prob,
+      distribution = distribution,
+      threshold = density
+    ) |>
+    dplyr::distinct()
 }
 
 #' @importFrom utils head tail
