@@ -21,7 +21,7 @@
 #' \url{https://OTexts.com/weird/}.
 #' @examples
 #' dist_kde(c(rnorm(200), rnorm(100, 5)))
-#' dist_kde(cbind(rnorm(200), rnorm(200, 5)))
+#' dist_kde(cbind(rnorm(200), rnorm(200, 5)), binned = TRUE)
 #'
 #' @export
 
@@ -29,7 +29,7 @@ dist_kde <- function(
   y,
   h = NULL,
   H = NULL,
-  method = c("robust", "normal", "plugin", "lookout"),
+  method = c("robust", "normal", "plugin", "scv", "lookout"),
   ...
 ) {
   method <- match.arg(method)
@@ -280,28 +280,22 @@ kurtosis.dist_kde <- function(x, ..., na.rm = FALSE) {
 
 # hdr.dist_kde is a modification of distributional:::hdr.dist_default,
 # but uses the KDE at the data points to find falpha,
-# rather than the KDE at the quantiles of the distribution.
-# This avoids the problem of having surprisal anomalies that are inconsistent with the HDR
-# Number of observations required tentatively set to 200.
+# rather than using the quantiles of the transformed distribution.
+# This avoids the problem of having surprisal anomalies that are inconsistent with the HDR.
 
 #' @exportS3Method distributional::hdr
 hdr.dist_kde <- function(object, size, n = 4096) {
-  if (NROW(object$kde$x) < 200) {
-    # Just use the default. There is not enough data to get a good estimate of falpha
-    NextMethod()
-  } else {
-    dist_y <- density(object, at = object$kde$x)
-    falpha <- quantile(dist_y, probs = 1 - size / 100, type = 8)
-    x <- quantile(object, seq(0.5 / n, 1 - 0.5 / n, length.out = n))
-    y <- density(object, at = x)
-    hdr <- crossing_alpha(falpha, x, y)
-    lower_hdr <- seq_along(hdr) %% 2 == 1
-    distributional::new_hdr(
-      lower = list(hdr[lower_hdr]),
-      upper = list(hdr[!lower_hdr]),
-      size = size
-    )
-  }
+  dist_y <- density(object, at = object$kde$x)
+  falpha <- quantile(dist_y, probs = 1 - size / 100, type = 8)
+  x <- quantile(object, seq(0.5 / n, 1 - 0.5 / n, length.out = n))
+  y <- density(object, at = x)
+  hdr <- crossing_alpha(falpha, x, y)
+  lower_hdr <- seq_along(hdr) %% 2 == 1
+  distributional::new_hdr(
+    lower = list(hdr[lower_hdr]),
+    upper = list(hdr[!lower_hdr]),
+    size = size
+  )
 }
 
 crossing_alpha <- function(alpha, x, y) {
@@ -330,4 +324,25 @@ parameters.dist_kde <- function(x, ...) {
   } else {
     list(h = x$kde$h)
   }
+}
+
+# Trapezoidal integration of y(x) over x
+# Assumes x is ordered and x and y are the same length
+# Returns cumulative integral over a grid
+cumintegral <- function(x, y, grid = TRUE) {
+  n <- length(x)
+  if (n == 1) {
+    return(list(x = x, y = 0))
+  }
+  if (grid) {
+    # Set up fine grid
+    xgrid <- seq(x[1], x[n], l = 1001)
+    ygrid <- stats::approx(x, y, xout = xgrid)$y
+  } else {
+    xgrid <- x
+    ygrid <- y
+  }
+  # Apply trapezoidal rule
+  cell <- 0.5 * (ygrid[1:1000] + ygrid[2:1001]) * (xgrid[2] - xgrid[1])
+  list(x = xgrid, y = cumsum(c(0, cell)))
 }

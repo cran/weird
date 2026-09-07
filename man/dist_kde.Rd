@@ -8,7 +8,7 @@ dist_kde(
   y,
   h = NULL,
   H = NULL,
-  method = c("robust", "normal", "plugin", "lookout"),
+  method = c("robust", "normal", "plugin", "scv", "lookout"),
   ...
 )
 }
@@ -40,7 +40,7 @@ random values from the kde is equivalent to a smoothed bootstrap.
 }
 \examples{
 dist_kde(c(rnorm(200), rnorm(100, 5)))
-dist_kde(cbind(rnorm(200), rnorm(200, 5)))
+dist_kde(cbind(rnorm(200), rnorm(200, 5)), binned = TRUE)
 
 }
 \references{

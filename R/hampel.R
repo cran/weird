@@ -11,8 +11,14 @@
 #' The first `bandwidth` and last `bandwidth` observations cannot
 #' be declared anomalies.
 #' @param y numeric vector containing time series
-#' @param bandwidth integer width of the window around each observation
-#' @param k numeric number of standard deviations to declare an outlier
+#' @param bandwidth integer specifying half-width of the window around each observation. That is, each window
+#' contains observations from t-bandwidth, ..., t+bandwidth. Must be at least 1.
+#' @param k numeric number of standard deviations to declare an anomaly. Ignored if `alpha` is specified.
+#' @param alpha numeric significance level for declaring an anomaly under a normal distribution.
+#' If specified, `k` is ignored and the threshold is determined by the significance level.
+#' @param approximation character string specifying the method to use for approximating
+#' the tail of the distribution of surprisal values. Options are "none" (no approximation),
+#' "gpd" (generalized Pareto distribution), or "empirical" (empirical distribution).
 #' @return logical vector identifying which observations are anomalies.
 #' @references Hyndman, R J (2026) "That's weird: Anomaly detection using R", Section 10.2,
 #' \url{https://OTexts.com/weird/}.
@@ -29,10 +35,21 @@
 #'   geom_point(data = df |> filter(hampel), col = "red")
 #' @export
 
-hampel_anomalies <- function(y, bandwidth, k = 3) {
+hampel_anomalies <- function(
+  y,
+  bandwidth,
+  k = 3,
+  alpha = NULL,
+  approximation = c("none", "gpd", "empirical")
+) {
+  approximation <- match.arg(approximation)
   stopifnot(is.numeric(y))
   stopifnot(is.numeric(bandwidth) && length(bandwidth) == 1 && bandwidth >= 1)
   stopifnot(is.numeric(k) && length(k) == 1 && k > 0)
+  if (!is.null(alpha)) {
+    stopifnot(is.numeric(alpha) && length(alpha) == 1 && alpha > 0 && alpha < 1)
+  }
+  stopifnot(approximation %in% c("none", "gpd", "empirical"))
   if (abs(bandwidth - round(bandwidth)) > 1e-8) {
     stop("Bandwidth must be an integer")
   }
@@ -45,8 +62,7 @@ hampel_anomalies <- function(y, bandwidth, k = 3) {
     endrule = "keep",
     na.action = "na.omit"
   )
-  diff <- abs(y - m)
-  # Set MAD to Inf so end points are not considered outliers
+  # Set MAD to Inf so end points are not considered anomalies
   mad <- rep(Inf, n)
   # Running MADs
   for (i in (bandwidth + 1):(n - bandwidth)) {
@@ -55,6 +71,22 @@ hampel_anomalies <- function(y, bandwidth, k = 3) {
       na.rm = TRUE
     )
   }
-  # Find outliers
-  return(diff > mad * k * 1.482602)
+  # Find anomalies
+  if (is.null(alpha)) {
+    alpha <- 2 * stats::pnorm(-k)
+  } else if (approximation == "none") {
+    k <- stats::qnorm(1 - 0.5 * alpha)
+  }
+  if (approximation == "none") {
+    return(abs(y - m) > k * mad * 1.482602)
+  } else {
+    # Find anomalies
+    s <- -dnorm(abs(y - m) / mad * 0.6744898, log = TRUE)
+    p <- surprisal_prob_from_s(
+      s,
+      distribution = distributional::dist_normal(),
+      approximation = approximation
+    )
+    return(p < alpha)
+  }
 }
